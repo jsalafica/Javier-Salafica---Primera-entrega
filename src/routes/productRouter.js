@@ -21,20 +21,6 @@ const checkIfAdmin = (req, res, next) => {
   }
 };
 
-// fs.readFile(__dirname + "products.txt", "utf-8", (error, contenido) => {
-//   if (error) {
-//     throw new Error(`Error al leer: ${error}`);
-//   }
-//   if (contenido.length > 0) {
-//     contenido = JSON.parse(contenido);
-//     console.log(contenido);
-//     contenido.forEach((product) => {
-//       product = new Product(product);
-//       products.push(product);
-//     });
-//   }
-// });
-
 router
   .route("/")
   .get((req, res) => {
@@ -71,7 +57,7 @@ router
 
     products.push(newProduct);
     fs.writeFileSync(
-      __dirname + "products.txt",
+      join(__dirname, "products.txt"),
       JSON.stringify(products, null, 2),
       (error) => {
         if (error) {
@@ -88,7 +74,6 @@ router
   .route("/:id")
   .get((req, res) => {
     const { id } = req.params;
-    // const product = products.find((product) => product.id === Number(id));
     const product = Product.findProduct(id, products);
 
     if (!product) {
@@ -122,7 +107,7 @@ router
       stock,
     });
     fs.writeFileSync(
-      __dirname + "products.txt",
+      join(__dirname, "products.txt"),
       JSON.stringify(products, null, 2)
     );
     res
@@ -139,7 +124,7 @@ router
     }
     products.splice(indexProductToDelete, 1);
     fs.writeFileSync(
-      __dirname + "products.txt",
+      join(__dirname, "products.txt"),
       JSON.stringify(products, null, 2)
     );
     res.status(200).json({ status: "Deleted" });

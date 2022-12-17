@@ -22,6 +22,7 @@ const checkIfAdmin = (req, res, next) => {
   }
 };
 
+// Crea un carrito y devuelve su Id
 router.route("/").post(checkIfAdmin, (req, res) => {
   let newCartId;
   if (cart.length == 0) {
@@ -32,6 +33,16 @@ router.route("/").post(checkIfAdmin, (req, res) => {
   products = [];
   const newCart = new Cart(newCartId, Date.now(), products);
   cart.push(newCart);
+  fs.writeFileSync(
+    join(__dirname, "carts.txt"),
+    JSON.stringify(cart, null, 2),
+    (error) => {
+      if (error) {
+        throw new Error(`Error al escribir el archivo: ${error}`);
+      }
+      console.log("Escritura exitosa");
+    }
+  );
   const response = {
     status: "Created",
     data: newCart,
@@ -41,6 +52,7 @@ router.route("/").post(checkIfAdmin, (req, res) => {
 
 router
   .route("/:id/productos")
+  // Lista todos los productos guardados en el carrito
   .get((req, res) => {
     const { id } = req.params;
     const carr = cart.find((car) => car.id === Number(id));
@@ -54,6 +66,7 @@ router
       res.status(200).json(carr);
     }
   })
+  // Incorpora productos a un carrito
   .post(checkIfAdmin, (req, res) => {
     const { id } = req.params;
     const carr = cart.find((car) => car.id === Number(id));
@@ -86,12 +99,15 @@ router
       };
 
       cart[idCart].products.push(newProduct);
-      // console.log(cart[idCart].products);
-      // cart.splice(idCart, 0, products);
+      fs.writeFileSync(
+        join(__dirname, "carts.txt"),
+        JSON.stringify(cart, null, 2)
+      );
       res.status(200).json(cart);
     }
   });
 
+// Vacía un carrito y lo elimina
 router.route("/:id").delete((req, res) => {
   const { id } = req.params;
   const indexCartToDelete = cart.findIndex((cart) => cart.id === Number(id));
@@ -99,21 +115,26 @@ router.route("/:id").delete((req, res) => {
     return res.status(404).json({ error: "Carrito no encontrado" });
   }
   cart.splice(indexCartToDelete, 1);
+  fs.writeFileSync(join(__dirname, "carts.txt"), JSON.stringify(cart, null, 2));
   res.status(200).json({ status: "Deleted", id: id });
 });
 
-router.route("/:id/productos/:id_prod").get((req, res) => {
+// Borra un producto por su id de un carrito específico
+router.route("/:id/productos/:id_prod").delete(checkIfAdmin, (req, res) => {
   const { id, id_prod } = req.params;
   const indexCartToDelete = cart.findIndex((cart) => cart.id === Number(id));
   if (indexCartToDelete === -1) {
     return res.status(404).json({ error: "Carrito no encontrado" });
   }
-  const indexCartToDeleteProduct = cart.findIndex(
-    (cart) => cart[indexCartToDelete] === Number(id_prod)
+  const indexCartToDeleteProduct = cart[indexCartToDelete].products.findIndex(
+    (prod) => prod.id === Number(id_prod)
   );
-  res
-    .status(200)
-    .json({ id: indexCartToDelete, id_prod: indexCartToDeleteProduct });
+  if (indexCartToDeleteProduct === -1) {
+    return res.status(404).json({ error: "Producto no encontrado" });
+  }
+  cart[indexCartToDelete].products.splice(indexCartToDeleteProduct, 1);
+  fs.writeFileSync(join(__dirname, "carts.txt"), JSON.stringify(cart, null, 2));
+  res.status(200).json({ status: "Deleted", producto_id: Number(id_prod) });
 });
 
 export default router;
